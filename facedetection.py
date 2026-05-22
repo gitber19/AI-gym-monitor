@@ -1,0 +1,27 @@
+import urllib.request
+import os
+import cv2
+
+os.makedirs("face_detector", exist_ok=True)
+
+proto_url = "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt"
+model_url = "https://huggingface.co/Durraiya/res10_300x300_ssd_iter_140000_fp16.caffemodel/resolve/main/res10_300x300_ssd_iter_140000_fp16.caffemodel"
+
+proto_path = "face_detector/deploy.prototxt"
+model_path = "face_detector/res10_300x300_ssd_iter_140000_fp16.caffemodel"
+
+if not os.path.exists(proto_path):
+    print("Downloading deploy.prototxt …")
+    urllib.request.urlretrieve(proto_url, proto_path)
+else:
+    print("deploy.prototxt already exists.")
+
+if not os.path.exists(model_path):
+    print("Downloading res10_300x300_ssd_iter_140000_fp16.caffemodel …")
+    urllib.request.urlretrieve(model_url, model_path)
+else:
+    print("Caffe model already exists.")
+
+print("Loading model …")
+face_net = cv2.dnn.readNetFromCaffe(proto_path, model_path)
+print("Model loaded successfully!")

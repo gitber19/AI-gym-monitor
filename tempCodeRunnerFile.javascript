@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 
+
 const COLORS = {
   bg: "#000000",
   card: "#1a1a1a",
@@ -17,7 +18,8 @@ const COLORS = {
   cyan: "#00ffff"
 };
 
-const  EXERCISES = {
+
+const EXERCISES = {
   "Squats": { calories: 0.38, icon: "🦵", category: "Legs" },
   "Bicep Curl": { calories: 0.15, icon: "💪", category: "Arms" },
   "Overhead Tricep Extension": { calories: 0.18, icon: "🔥", category: "Arms" },
@@ -27,12 +29,14 @@ const  EXERCISES = {
   "Jumping Jacks": { calories: 0.45, icon: "⚡", category: "Cardio" }
 };
 
+
 const FITNESS_GOALS = {
   "Weight Loss": ["Jumping Jacks", "Squats", "Lunges"],
   "Muscle Building": ["Pushups", "Bicep Curl", "Overhead Tricep Extension"],
   "Endurance": ["Squats", "Jumping Jacks", "Leg Raises"],
   "General Fitness": ["Squats", "Pushups", "Leg Raises"]
 };
+
 
 // Utility functions
 const calculateAngle = (a, b, c) => {
@@ -42,25 +46,18 @@ const calculateAngle = (a, b, c) => {
   return angle;
 };
 
+
 const smoothAngle = (buffer, newAngle, maxSize = 5) => {
   buffer.push(newAngle);
   if (buffer.length > maxSize) buffer.shift();
   return buffer.reduce((a, b) => a + b, 0) / buffer.length;
 };
 
-// FIX #5 & #6: Replace localStorage with in-memory storage + safe JSON parsing
-const UserManager = (() => {
-  const users = new Map(); // In-memory storage instead of localStorage
-  
-  const safeJSONParse = (str) => {
-    try {
-      return JSON.parse(str);
-    } catch (e) {
-      console.error('JSON parse error:', e);
-      return null;
-    }
-  };
 
+// User Manager using in-memory storage
+const UserManager = (() => {
+  const users = new Map();
+  
   return {
     listUsers: () => {
       return Array.from(users.keys()).sort();
@@ -174,6 +171,7 @@ const UserManager = (() => {
   };
 })();
 
+
 export default function AIPoseTrainer() {
   const [screen, setScreen] = useState('home');
   const [users, setUsers] = useState([]);
@@ -195,13 +193,12 @@ export default function AIPoseTrainer() {
   const angleBufferRef = useRef([]);
   const prevStateRef = useRef(null);
   const lastRepTimeRef = useRef(Date.now());
-  const isMountedRef = useRef(true); // FIX #7: Track component mount status
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     setUsers(UserManager.listUsers());
   }, []);
 
-  // FIX #3: Proper cleanup and dependency management
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -221,7 +218,6 @@ export default function AIPoseTrainer() {
         video: { width: 640, height: 480 } 
       });
       
-      // FIX #10: Null check
       if (videoRef.current && isMountedRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
@@ -231,7 +227,6 @@ export default function AIPoseTrainer() {
           }
         };
       } else {
-        // Clean up stream if component unmounted
         stream.getTracks().forEach(track => track.stop());
       }
     } catch (err) {
@@ -255,7 +250,6 @@ export default function AIPoseTrainer() {
         detectorRef.current = detector;
         detectPose();
       } else {
-        // Clean up detector if component unmounted
         detector.dispose && detector.dispose();
       }
     } catch (err) {
@@ -267,7 +261,6 @@ export default function AIPoseTrainer() {
     }
   };
 
-  // FIX #8: Improved cleanup
   const stopCamera = () => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -283,49 +276,37 @@ export default function AIPoseTrainer() {
       videoRef.current.srcObject = null;
     }
     
-    // FIX #2: Dispose TensorFlow resources
     if (detectorRef.current) {
       detectorRef.current.dispose && detectorRef.current.dispose();
       detectorRef.current = null;
     }
   };
 
-  // FIX #4: Prevent race conditions
   const detectPose = async () => {
-    // Stop if already running another loop
-    if (animationRef.current !== null && animationRef.current !== undefined) {
+    if (!isMountedRef.current || !detectorRef.current || !videoRef.current) {
       return;
     }
 
-    const runDetection = async () => {
-      // FIX #7 & #10: Check mounted status and null refs
-      if (!isMountedRef.current || !detectorRef.current || !videoRef.current) {
-        return;
-      }
+    if (isPaused) {
+      animationRef.current = requestAnimationFrame(detectPose);
+      return;
+    }
 
-      if (isPaused) {
-        animationRef.current = requestAnimationFrame(runDetection);
-        return;
+    try {
+      const poses = await detectorRef.current.estimatePoses(videoRef.current);
+      
+      if (poses.length > 0 && isMountedRef.current) {
+        const pose = poses[0];
+        drawPose(pose);
+        processExercise(pose);
       }
+    } catch (err) {
+      console.error('Detection error:', err);
+    }
 
-      try {
-        const poses = await detectorRef.current.estimatePoses(videoRef.current);
-        
-        if (poses.length > 0 && isMountedRef.current) {
-          const pose = poses[0];
-          drawPose(pose);
-          processExercise(pose);
-        }
-      } catch (err) {
-        console.error('Detection error:', err);
-      }
-
-      if (isMountedRef.current) {
-        animationRef.current = requestAnimationFrame(runDetection);
-      }
-    };
-
-    runDetection();
+    if (isMountedRef.current) {
+      animationRef.current = requestAnimationFrame(detectPose);
+    }
   };
 
   const drawPose = (pose) => {
@@ -370,7 +351,7 @@ export default function AIPoseTrainer() {
   };
 
   const processExercise = (pose) => {
-    if (!isMountedRef.current) return; // FIX #7
+    if (!isMountedRef.current) return;
 
     const kp = pose.keypoints;
     let angle = 0;
@@ -465,7 +446,7 @@ export default function AIPoseTrainer() {
         break;
     }
 
-    if (!isMountedRef.current) return; // FIX #7
+    if (!isMountedRef.current) return;
     setCurrentAngle(Math.round(angle));
 
     if (state && state !== prevStateRef.current) {
@@ -536,7 +517,7 @@ export default function AIPoseTrainer() {
     setFeedback('GET READY!');
     setFeedbackColor(COLORS.accent);
     setIsPaused(false);
-    angleBufferRef.current = []; // FIX #9: Reset angle buffer
+    angleBufferRef.current = [];
     prevStateRef.current = null;
     lastRepTimeRef.current = Date.now();
     setScreen('exercise');
@@ -706,7 +687,7 @@ export default function AIPoseTrainer() {
             <div style={{ maxWidth: '800px', margin: '30px auto' }}>
               {users.map(user => {
                 const data = UserManager.loadUser(user);
-                if (!data) return null; // FIX #10: Null check
+                if (!data) return null;
                 return (
                   <div
                     key={user}
@@ -744,7 +725,6 @@ export default function AIPoseTrainer() {
     );
   }
 
-  // FIX #1: Complete dashboard screen
   if (screen === 'dashboard') {
     const userData = UserManager.loadUser(currentUser);
     if (!userData) {
@@ -771,7 +751,6 @@ export default function AIPoseTrainer() {
             </button>
           </div>
 
-          {/* Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
             <div style={{ background: COLORS.card, padding: '20px', borderRadius: '10px' }}>
               <div style={{ color: COLORS.dim, fontSize: '14px' }}>TOTAL WORKOUTS</div>
@@ -799,7 +778,6 @@ export default function AIPoseTrainer() {
             </div>
           </div>
 
-          {/* Daily Goal Progress */}
           <div style={{ background: COLORS.card, padding: '20px', borderRadius: '10px', marginBottom: '30px' }}>
             <h3 style={{ color: COLORS.text, marginBottom: '15px' }}>TODAY'S CALORIE GOAL</h3>
             <div style={{ background: COLORS.bg, height: '30px', borderRadius: '15px', overflow: 'hidden' }}>
@@ -815,7 +793,6 @@ export default function AIPoseTrainer() {
             </div>
           </div>
 
-          {/* Recommended Exercises */}
           <div style={{ marginBottom: '30px' }}>
             <h2 style={{ color: COLORS.text, marginBottom: '20px' }}>
               RECOMMENDED EXERCISES ({userData.fitness_goal})
@@ -846,7 +823,6 @@ export default function AIPoseTrainer() {
             </div>
           </div>
 
-          {/* All Exercises */}
           <div>
             <h2 style={{ color: COLORS.text, marginBottom: '20px' }}>ALL EXERCISES</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
@@ -890,7 +866,6 @@ export default function AIPoseTrainer() {
     );
   }
 
-  // Exercise Screen
   if (screen === 'exercise') {
     return (
       <div style={{ background: COLORS.bg, minHeight: '100vh', padding: '20px', position: 'relative' }}>
@@ -924,7 +899,6 @@ export default function AIPoseTrainer() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-            {/* Video Feed */}
             <div style={{ position: 'relative' }}>
               <video
                 ref={videoRef}
@@ -942,7 +916,6 @@ export default function AIPoseTrainer() {
                 }}
               />
               
-              {/* Feedback Overlay */}
               <div style={{ 
                 position: 'absolute', 
                 top: '20px', 
@@ -960,7 +933,6 @@ export default function AIPoseTrainer() {
                 {feedback}
               </div>
 
-              {/* Angle Display */}
               <div style={{ 
                 position: 'absolute', 
                 bottom: '20px', 
@@ -975,7 +947,6 @@ export default function AIPoseTrainer() {
                 {currentAngle}°
               </div>
 
-              {/* State Indicator */}
               <div style={{ 
                 position: 'absolute', 
                 bottom: '20px', 
@@ -991,7 +962,6 @@ export default function AIPoseTrainer() {
               </div>
             </div>
 
-            {/* Stats Panel */}
             <div>
               <div style={{ background: COLORS.card, padding: '30px', borderRadius: '10px', marginBottom: '20px' }}>
                 <div style={{ color: COLORS.dim, fontSize: '16px', marginBottom: '10px' }}>REPS</div>

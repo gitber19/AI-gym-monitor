@@ -1,0 +1,74 @@
+{
+    "username": "keshav shukla",
+    "age": 19,
+    "daily_calorie_goal": 80,
+    "weekly_calorie_goal": 560,
+    "created_date": "2025-11-04 19:59:19",
+    "workouts": [
+        {
+            "date": "2025-11-04 20:01:00",
+            "exercise": "Pushups",
+            "reps": 7,
+            "calories_burned": 2.45
+        },
+        {
+            "date": "2025-11-04 23:50:53",
+            "exercise": "Squats",
+            "reps": 6,
+            "calories_burned": 2.28,
+            "form_score": 0.0
+        },
+        {
+            "date": "2025-11-04 23:53:48",
+            "exercise": "Pushups",
+            "reps": 5,
+            "calories_burned": 1.75,
+            "form_score": 0.0
+        },
+        {
+            "date": "2025-11-05 00:25:02",
+            "exercise": "Squats",
+            "reps": 0,
+            "calories_burned": 0,
+            "form_score": 0
+        },
+        {
+            "date": "2025-11-05 00:30:31",
+            "exercise": "Bicep Curl",
+            "reps": 15,
+            "calories_burned": 2.25,
+            "form_score": 0.0
+        }
+    ],
+    "total_workouts": 4,
+    "total_reps": 26,
+    "total_calories": 6.279999999999999,
+    "personal_records": {
+        "Squats": 6,
+        "Pushups": 5,
+        "Bicep Curl": 15
+    },
+    "form_scores": [
+        {
+            "date": "2025-11-04",
+            "score": 0.0
+        },
+        {
+            "date": "2025-11-04",
+            "score": 0.0
+        },
+        {
+            "date": "2025-11-05",
+            "score": 0
+        },
+        {
+            "date": "2025-11-05",
+            "score": 0.0
+        }
+    ],
+    "streak_days": 2,
+    "last_workout_date": "2025-11-05",
+    "achievements": [
+        "\ud83c\udfc6 First 10 Reps"
+    ]
+}

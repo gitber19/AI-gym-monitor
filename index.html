@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💪 AI Gym Trainer Pro - Personal Training Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gym-dark: #0a0a0f;
+            --gym-dark-card: #1a1a2e;
+            --gym-accent: #ff0040;
+            --gym-accent-glow: #ff3366;
+            --gym-secondary: #00d4ff;
+            --gym-success: #00ff88;
+            --gym-warning: #ffaa00;
+            --gym-text: #ffffff;
+            --gym-text-dim: #8892b0;
+            --gym-gradient: linear-gradient(135deg, #ff0040 0%, #00d4ff 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gym-dark);
+            color: var(--gym-text);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, rgba(255, 0, 64, 0.1), rgba(0, 212, 255, 0.1));
+            border-bottom: 2px solid var(--gym-accent);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            text-align: center;
+            font-size: 2.5em;
+            background: var(--gym-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 0, 64, 0.5);
+            letter-spacing: 2px;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 12px 30px;
+            background: var(--gym-dark-card);
+            border: 2px solid transparent;
+            color: var(--gym-text);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-tab:hover {
+            border-color: var(--gym-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 0, 64, 0.3);
+        }
+
+        .nav-tab.active {
+            background: var(--gym-gradient);
+            border-color: var(--gym-accent);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.5);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--gym-dark-card);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 0, 64, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(255, 0, 64, 0.4);
+            border-color: var(--gym-accent);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--gym-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 0, 64, 0.5);
+        }
+
+        .btn-success {
+            background: var(--gym-success);
+            color: var(--gym-dark);
+        }
+
+        .btn-danger {
+            background: var(--gym-accent);
+            color: white;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gym-text-dim);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: var(--gym-dark);
+            border: 2px solid rgba(255, 0, 64, 0.3);
+            border-radius: 8px;
+            color: var(--gym-text);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--gym-accent);
+            box-shadow: 0 0 10px rgba(255, 0, 64, 0.3);
+        }
+
+        /* Exercise Grid */
+        .exercise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .exercise-card {
+            background: var(--gym-dark-card);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .exercise-card:hover {
+            border-color: var(--gym-accent);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 0, 64, 0.4);
+        }
+
+        .exercise-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .exercise-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--gym-accent);
+        }
+
+        .exercise-info {
+            color: var(--gym-text-dim);
+            font-size: 0.9em;
+        }
+
+        /* Workout Session */
+        .workout-session {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            background: var(--gym-dark);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid var(--gym-accent);
+        }
+
+        #video, #canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--gym-dark-card);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--gym-accent);
+        }
+
+        .stat-label {
+            color: var(--gym-text-dim);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--gym-accent);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: var(--gym-dark);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+            border: 2px solid rgba(255, 0, 64, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gym-gradient);
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Feedback Overlay */
+        .feedback-overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid var(--gym-accent);
+            font-size: 1.2em;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .feedback-good {
+            color: var(--gym-success);
+            border-color: var(--gym-success);
+        }
+
+        .feedback-warning {
+            color: var(--gym-warning);
+            border-color: var(--gym-warning);
+        }
+
+        .feedback-bad {
+            color: var(--gym-accent);
+            border-color: var(--gym-accent);
+        }
+
+        /* Profile Section */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .bmi-indicator {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .bmi-underweight {
+            background: rgba(0, 212, 255, 0.2);
+            border: 2px solid var(--gym-secondary);
+        }
+
+        .bmi-normal {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid var(--gym-success);
+        }
+
+        .bmi-overweight {
+            background: rgba(255, 170, 0, 0.2);
+            border: 2px solid var(--gym-warning);
+        }
+
+        .bmi-obese {
+            background: rgba(255, 0, 64, 0.2);
+            border: 2px solid var(--gym-accent);
+        }
+
+        /* Workout Routine */
+        .routine-card {
+            background: var(--gym-dark-card);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--gym-accent);
+        }
+
+        .routine-day {
+            font-size: 1.3em;
+            color: var(--gym-accent);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .routine-exercise {
+            padding: 10px;
+            background: var(--gym-dark);
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Hidden by default */
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* Session History */
+        .history-item {
+            background: var(--gym-dark-card);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--gym-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-date {
+            color: var(--gym-text-dim);
+            font-size: 0.9em;
+        }
+
+        .history-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .history-stat {
+            text-align: center;
+        }
+
+        .history-stat-value {
+            font-size: 1.5em;
+            color: var(--gym-accent);
+            font-weight: bold;
+        }
+
+        .history-stat-label {
+            font-size: 0.8em;
+            color: var(--gym-text-dim);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .workout-session {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid var(--gym-dark-card);
+            border-top: 4px solid var(--gym-accent);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>💪 AI GYM TRAINER PRO</h1>
+            <p style="text-align: center; color: var(--gym-text-dim); margin-top: 10px;">
+                Intelligent Personal Training with Real-Time Pose Detection
+            </p>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="nav-tabs">
+            <div class="nav-tab active" onclick="showScreen('profile')">👤 Profile</div>
+            <div class="nav-tab" onclick="showScreen('workout')">🏋️ Workout</div>
+            <div class="nav-tab" onclick="showScreen('routine')">📋 Routine</div>
+            <div class="nav-tab" onclick="showScreen('history')">📊 History</div>
+        </nav>
+
+        <!-- Profile Screen -->
+        <div id="profile-screen" class="screen active">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--gym-accent);">👤 User Profile</h2>
+                
+                <div id="profile-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="profile-name" placeholder="Enter your name">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" id="profile-age" placeholder="Age">
+                        </div>
+                        <div class="form-group">
+                            <label>Gender</label>
+                            <select id="profile-gender">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Weight (kg)</label>
+                            <input type="number" id="profile-weight" placeholder="Weight in kg" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Height (cm)</label>
+                            <input type="number" id="profile-height" placeholder="Height in cm" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fitness Goal</label>
+                        <select id="profile-goal">
+                            <option value="weight_loss">Weight Loss</option>
+                            <option value="muscle_gain">Muscle Gain</option>
+                            <option value="endurance">Endurance</option>
+                            <option value="general">General Fitness</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+                </div>
+
+                <div id="profile-display" style="display: none;">
+                    <div class="profile-grid">
+                        <div class="card">
+                            <div class="stat-label">BMI</div>
+                            <div class="stat-value" id="display-bmi">-</div>
+                            <div class="bmi-indicator" id="bmi-status"></div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Total Workouts</div>
+                            <div class="stat-value" id="display-workouts">0</div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Total Reps</div>
+                            <div class="stat-value" id="display-reps">0</div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Total Sets</div>
+                            <div class="stat-value" id="display-sets">0</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="editProfile()" style="margin-top: 20px;">✏️ Edit Profile</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workout Screen -->
+        <div id="workout-screen" class="screen">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--gym-accent);">🏋️ Select Exercise</h2>
+                
+                <div class="exercise-grid" id="exercise-grid">
+                    <!-- Exercises will be loaded here -->
+                </div>
+            </div>
+
+            <div id="workout-session" style="display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: var(--gym-accent);" id="current-exercise-name">Exercise</h2>
+                        <button class="btn btn-danger" onclick="endWorkout()">⏹️ End Workout</button>
+                    </div>
+
+                    <div class="workout-session">
+                        <div class="video-container">
+                            <video id="video" autoplay playsinline></video>
+                            <canvas id="canvas"></canvas>
+                            <div id="feedback-overlay" class="feedback-overlay" style="display: none;"></div>
+                        </div>
+
+                        <div class="stats-panel">
+                            <div class="stat-card">
+                                <div class="stat-label">Current Set</div>
+                                <div class="stat-value" id="current-set">1</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Reps (This Set)</div>
+                                <div class="stat-value" id="current-reps">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Reps</div>
+                                <div class="stat-value" id="total-reps">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Form Score</div>
+                                <div class="stat-value" id="form-score">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="set-progress" style="width: 0%;">0%</div>
+                                </div>
+                                <div class="stat-label">Set Progress</div>
+                            </div>
+                            <button class="btn btn-success" onclick="completeSet()" id="complete-set-btn" disabled>✓ Complete Set</button>
+                            <button class="btn btn-primary" onclick="nextSet()" id="next-set-btn" style="display: none;">➡️ Next Set</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routine Screen -->
+        <div id="routine-screen" class="screen">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--gym-accent);">📋 Personalized Workout Routine</h2>
+                <div id="routine-content">
+                    <p style="color: var(--gym-text-dim); text-align: center; padding: 40px;">
+                        Create your profile to get personalized workout recommendations based on your BMI and fitness goals.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--gym-accent);">📊 Workout History</h2>
+                <div id="history-content">
+                    <p style="color: var(--gym-text-dim); text-align: center; padding: 40px;">
+                        No workout history yet. Start your first workout!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

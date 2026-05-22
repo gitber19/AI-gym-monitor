@@ -17,7 +17,7 @@ const COLORS = {
   cyan: "#00ffff"
 };
 
-const  EXERCISES = {
+const EXERCISES = {
   "Squats": { calories: 0.38, icon: "🦵", category: "Legs" },
   "Bicep Curl": { calories: 0.15, icon: "💪", category: "Arms" },
   "Overhead Tricep Extension": { calories: 0.18, icon: "🔥", category: "Arms" },
