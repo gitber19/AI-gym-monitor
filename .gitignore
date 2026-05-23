@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.exe
+tempCodeRunnerFile.*
+.venv/
+node_modules/
+posture_stats_*.json
+user_data/*.json
